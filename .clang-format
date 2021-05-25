@@ -1,0 +1,10 @@
+---
+Language: Cpp
+BasedOnStyle: Chromium
+
+AccessModifierOffset: -2
+IndentWidth: 4
+ColumnLimit: 120
+FixNamespaceComments: false
+NamespaceIndentation: All
+...
