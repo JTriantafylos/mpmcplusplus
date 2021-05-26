@@ -1,6 +1,7 @@
 # Ignore build files.
 build/*
 bin/*
+doc/*
 
 # Ignore CLion specific folders
 .idea/
