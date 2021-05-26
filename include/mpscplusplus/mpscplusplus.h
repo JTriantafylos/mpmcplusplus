@@ -59,7 +59,7 @@ namespace mpscplusplus {
 
         void wait_and_pop(T& data) {
             std::unique_lock<std::mutex> lock(m_mutex);
-            while (m_backing_queue.empty()) {
+            if (m_backing_queue.empty()) {
                 m_condition_variable.wait(lock);
             }
             data = m_backing_queue.front();
