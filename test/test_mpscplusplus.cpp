@@ -24,6 +24,26 @@
 #include "mpscplusplus/mpscplusplus.h"
 
 TEST_SUITE("queue") {
+    TEST_CASE("popping") {
+        SUBCASE("from empty queue") {
+            mpscplusplus::Queue<int> queue;
+
+            int val;
+            CHECK(queue.pop(val) == false);
+        }
+
+        SUBCASE("from non-empty queue") {
+            mpscplusplus::Queue<int> queue;
+            int test_val = 1;
+
+            queue.push(test_val);
+
+            int val;
+            CHECK(queue.pop(val) == true);
+            CHECK(val == test_val);
+        }
+    }
+
     TEST_CASE("sequential pushing and popping") {
         SUBCASE("using lvalue primitives") {
             mpscplusplus::Queue<int> queue;
