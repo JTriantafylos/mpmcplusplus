@@ -65,6 +65,16 @@ namespace mpscplusplus {
             data = m_backing_queue.front();
             m_backing_queue.pop();
         };
+
+        template <typename Rep, typename Period>
+        void wait_and_pop(T& data, const std::chrono::duration<Rep, Period>& timeout) {
+            std::unique_lock<std::mutex> lock(m_mutex);
+            if (m_backing_queue.empty()) {
+                m_condition_variable.wait_for(lock, timeout);
+            }
+            data = m_backing_queue.front();
+            m_backing_queue.pop();
+        }
     };
 }
 

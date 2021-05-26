@@ -44,6 +44,29 @@ TEST_SUITE("queue") {
         }
     }
 
+    TEST_CASE("waiting and popping" *
+              doctest::description("all subcases should take approxomately 50ms or less to execute")) {
+        SUBCASE("from empty queue") {
+            mpscplusplus::Queue<int> queue;
+
+            int val;
+            // TODO: Come up with a better way to test timeout functionality
+            queue.wait_and_pop(val, std::chrono::milliseconds(50));
+        }
+
+        SUBCASE("from non-empty queue") {
+            mpscplusplus::Queue<int> queue;
+            int test_val = 1;
+
+            queue.push(test_val);
+
+            int val;
+            queue.wait_and_pop(val, std::chrono::milliseconds(25));
+            CHECK(val == test_val);
+            queue.wait_and_pop(val, std::chrono::milliseconds(25));
+        }
+    }
+
     TEST_CASE("sequential pushing and popping") {
         SUBCASE("using lvalue primitives") {
             mpscplusplus::Queue<int> queue;
