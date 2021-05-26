@@ -19,6 +19,8 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "doctest/doctest.h"
 
+#include <thread>
+
 #include "mpscplusplus/mpscplusplus.h"
 
 TEST_SUITE("queue") {
@@ -109,6 +111,276 @@ TEST_SUITE("queue") {
                 queue.pop(val);
                 CHECK(val == std::to_string(i));
             }
+        }
+    }
+
+    TEST_CASE("multi-threaded pushing and popping") {
+        SUBCASE("using lvalue primitives") {
+            mpscplusplus::Queue<int> queue;
+
+            std::thread push_thread([&queue]() {
+                for (int i = 0; i < 10; i++) {
+                    int val = i;
+                    queue.push(val);
+                }
+            });
+
+            push_thread.join();
+
+            std::thread pop_thread([&queue]() {
+                for (int i = 0; i < 10; i++) {
+                    int val;
+                    queue.pop(val);
+                    CHECK(val == i);
+                }
+            });
+
+            pop_thread.join();
+        }
+
+        SUBCASE("using const lvalue primitives") {
+            mpscplusplus::Queue<int> queue;
+
+            std::thread push_thread([&queue]() {
+                for (int i = 0; i < 10; i++) {
+                    const int val = i;
+                    queue.push(val);
+                }
+            });
+
+            push_thread.join();
+
+            std::thread pop_thread([&queue]() {
+                for (int i = 0; i < 10; i++) {
+                    int val;
+                    queue.pop(val);
+                    CHECK(val == i);
+                }
+            });
+
+            pop_thread.join();
+        }
+
+        SUBCASE("using rvalue primitives") {
+            mpscplusplus::Queue<int> queue;
+
+            std::thread push_thread([&queue]() {
+                for (int i = 0; i < 10; i++) {
+                    queue.push(int(i));
+                }
+            });
+
+            push_thread.join();
+
+            std::thread pop_thread([&queue]() {
+                for (int i = 0; i < 10; i++) {
+                    int val;
+                    queue.pop(val);
+                    CHECK(val == i);
+                }
+            });
+
+            pop_thread.join();
+        }
+
+        SUBCASE("using lvalue objects") {
+            mpscplusplus::Queue<std::string> queue;
+
+            std::thread push_thread([&queue]() {
+                for (int i = 0; i < 10; i++) {
+                    std::string string = std::to_string(i);
+                    queue.push(string);
+                }
+            });
+
+            push_thread.join();
+
+            std::thread pop_thread([&queue]() {
+                for (int i = 0; i < 10; i++) {
+                    std::string val;
+                    queue.pop(val);
+                    CHECK(val == std::to_string(i));
+                }
+            });
+
+            pop_thread.join();
+        }
+
+        SUBCASE("using const lvalue objects") {
+            mpscplusplus::Queue<std::string> queue;
+
+            std::thread push_thread([&queue]() {
+                for (int i = 0; i < 10; i++) {
+                    const std::string string = std::to_string(i);
+                    queue.push(string);
+                }
+            });
+
+            push_thread.join();
+
+            std::thread pop_thread([&queue]() {
+                for (int i = 0; i < 10; i++) {
+                    std::string val;
+                    queue.pop(val);
+                    CHECK(val == std::to_string(i));
+                }
+            });
+
+            pop_thread.join();
+        }
+
+        SUBCASE("using rvalue objects") {
+            mpscplusplus::Queue<std::string> queue;
+
+            std::thread push_thread([&queue]() {
+                for (int i = 0; i < 10; i++) {
+                    queue.push(std::to_string(i));
+                }
+            });
+
+            push_thread.join();
+
+            std::thread pop_thread([&queue]() {
+                for (int i = 0; i < 10; i++) {
+                    std::string val;
+                    queue.pop(val);
+                    CHECK(val == std::to_string(i));
+                }
+            });
+
+            pop_thread.join();
+        }
+    }
+
+    TEST_CASE("concurrent pushing and popping with waiting") {
+        SUBCASE("using lvalue primitives") {
+            mpscplusplus::Queue<int> queue;
+
+            std::thread push_thread([&queue]() {
+                for (int i = 0; i < 10; i++) {
+                    int val = i;
+                    queue.push(val);
+                }
+            });
+
+            std::thread pop_thread([&queue]() {
+                for (int i = 0; i < 10; i++) {
+                    int val;
+                    queue.wait_and_pop(val);
+                    CHECK(val == i);
+                }
+            });
+
+            push_thread.join();
+            pop_thread.join();
+        }
+
+        SUBCASE("using const lvalue primitives") {
+            mpscplusplus::Queue<int> queue;
+
+            std::thread push_thread([&queue]() {
+                for (int i = 0; i < 10; i++) {
+                    const int val = i;
+                    queue.push(val);
+                }
+            });
+
+            std::thread pop_thread([&queue]() {
+                for (int i = 0; i < 10; i++) {
+                    int val;
+                    queue.wait_and_pop(val);
+                    CHECK(val == i);
+                }
+            });
+
+            push_thread.join();
+            pop_thread.join();
+        }
+
+        SUBCASE("using rvalue primitives") {
+            mpscplusplus::Queue<int> queue;
+
+            std::thread push_thread([&queue]() {
+                for (int i = 0; i < 10; i++) {
+                    queue.push(int(i));
+                }
+            });
+
+            std::thread pop_thread([&queue]() {
+                for (int i = 0; i < 10; i++) {
+                    int val;
+                    queue.wait_and_pop(val);
+                    CHECK(val == i);
+                }
+            });
+
+            push_thread.join();
+            pop_thread.join();
+        }
+
+        SUBCASE("using lvalue objects") {
+            mpscplusplus::Queue<std::string> queue;
+
+            std::thread push_thread([&queue]() {
+                for (int i = 0; i < 10; i++) {
+                    std::string string = std::to_string(i);
+                    queue.push(string);
+                }
+            });
+
+            std::thread pop_thread([&queue]() {
+                for (int i = 0; i < 10; i++) {
+                    std::string val;
+                    queue.wait_and_pop(val);
+                    CHECK(val == std::to_string(i));
+                }
+            });
+
+            push_thread.join();
+            pop_thread.join();
+        }
+
+        SUBCASE("using const lvalue objects") {
+            mpscplusplus::Queue<std::string> queue;
+
+            std::thread push_thread([&queue]() {
+                for (int i = 0; i < 10; i++) {
+                    const std::string string = std::to_string(i);
+                    queue.push(string);
+                }
+            });
+
+            std::thread pop_thread([&queue]() {
+                for (int i = 0; i < 10; i++) {
+                    std::string val;
+                    queue.wait_and_pop(val);
+                    CHECK(val == std::to_string(i));
+                }
+            });
+
+            push_thread.join();
+            pop_thread.join();
+        }
+
+        SUBCASE("using rvalue objects") {
+            mpscplusplus::Queue<std::string> queue;
+
+            std::thread push_thread([&queue]() {
+                for (int i = 0; i < 10; i++) {
+                    queue.push(std::to_string(i));
+                }
+            });
+
+            std::thread pop_thread([&queue]() {
+                for (int i = 0; i < 10; i++) {
+                    std::string val;
+                    queue.wait_and_pop(val);
+                    CHECK(val == std::to_string(i));
+                }
+            });
+
+            push_thread.join();
+            pop_thread.join();
         }
     }
 }
