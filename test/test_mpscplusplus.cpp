@@ -45,7 +45,7 @@ TEST_SUITE("queue") {
     }
 
     TEST_CASE("waiting and popping" *
-              doctest::description("all subcases should take approxomately 50ms or less to execute")) {
+              doctest::description("all subcases should take approximately 50ms or less to execute")) {
         SUBCASE("from empty queue") {
             mpscplusplus::Queue<int> queue;
 
@@ -153,6 +153,20 @@ TEST_SUITE("queue") {
                 std::string val;
                 queue.pop(val);
                 CHECK(val == std::to_string(i));
+            }
+        }
+
+        SUBCASE("using many values") {
+            mpscplusplus::Queue<int> queue;
+
+            for (int i = 0; i < 100000; i++) {
+                queue.push(i);
+            }
+
+            for (int i = 0; i < 100000; i++) {
+                int val;
+                queue.pop(val);
+                CHECK(val == i);
             }
         }
     }
@@ -293,11 +307,41 @@ TEST_SUITE("queue") {
 
             pop_thread.join();
         }
+
+        SUBCASE("using many values") {
+            mpscplusplus::Queue<int> queue;
+
+            std::thread push_thread([&queue]() {
+              for (int i = 0; i < 100000; i++) {
+                  queue.push(i);
+              }
+            });
+
+            push_thread.join();
+
+            std::thread pop_thread([&queue]() {
+              for (int i = 0; i < 100000; i++) {
+                  int val;
+                  queue.pop(val);
+                  CHECK(val == i);
+              }
+            });
+
+            pop_thread.join();
+        }
     }
 
     TEST_CASE("concurrent pushing and popping with waiting") {
         SUBCASE("using lvalue primitives") {
             mpscplusplus::Queue<int> queue;
+
+            std::thread pop_thread([&queue]() {
+                for (int i = 0; i < 10; i++) {
+                    int val;
+                    queue.wait_and_pop(val);
+                    CHECK(val == i);
+                }
+            });
 
             std::thread push_thread([&queue]() {
                 for (int i = 0; i < 10; i++) {
@@ -306,6 +350,13 @@ TEST_SUITE("queue") {
                 }
             });
 
+            pop_thread.join();
+            push_thread.join();
+        }
+
+        SUBCASE("using const lvalue primitives") {
+            mpscplusplus::Queue<int> queue;
+
             std::thread pop_thread([&queue]() {
                 for (int i = 0; i < 10; i++) {
                     int val;
@@ -313,13 +364,6 @@ TEST_SUITE("queue") {
                     CHECK(val == i);
                 }
             });
-
-            push_thread.join();
-            pop_thread.join();
-        }
-
-        SUBCASE("using const lvalue primitives") {
-            mpscplusplus::Queue<int> queue;
 
             std::thread push_thread([&queue]() {
                 for (int i = 0; i < 10; i++) {
@@ -328,6 +372,13 @@ TEST_SUITE("queue") {
                 }
             });
 
+            pop_thread.join();
+            push_thread.join();
+        }
+
+        SUBCASE("using rvalue primitives") {
+            mpscplusplus::Queue<int> queue;
+
             std::thread pop_thread([&queue]() {
                 for (int i = 0; i < 10; i++) {
                     int val;
@@ -335,13 +386,6 @@ TEST_SUITE("queue") {
                     CHECK(val == i);
                 }
             });
-
-            push_thread.join();
-            pop_thread.join();
-        }
-
-        SUBCASE("using rvalue primitives") {
-            mpscplusplus::Queue<int> queue;
 
             std::thread push_thread([&queue]() {
                 for (int i = 0; i < 10; i++) {
@@ -349,20 +393,20 @@ TEST_SUITE("queue") {
                 }
             });
 
-            std::thread pop_thread([&queue]() {
-                for (int i = 0; i < 10; i++) {
-                    int val;
-                    queue.wait_and_pop(val);
-                    CHECK(val == i);
-                }
-            });
-
-            push_thread.join();
             pop_thread.join();
+            push_thread.join();
         }
 
         SUBCASE("using lvalue objects") {
             mpscplusplus::Queue<std::string> queue;
+
+            std::thread pop_thread([&queue]() {
+                for (int i = 0; i < 10; i++) {
+                    std::string val;
+                    queue.wait_and_pop(val);
+                    CHECK(val == std::to_string(i));
+                }
+            });
 
             std::thread push_thread([&queue]() {
                 for (int i = 0; i < 10; i++) {
@@ -371,6 +415,13 @@ TEST_SUITE("queue") {
                 }
             });
 
+            pop_thread.join();
+            push_thread.join();
+        }
+
+        SUBCASE("using const lvalue objects") {
+            mpscplusplus::Queue<std::string> queue;
+
             std::thread pop_thread([&queue]() {
                 for (int i = 0; i < 10; i++) {
                     std::string val;
@@ -378,13 +429,6 @@ TEST_SUITE("queue") {
                     CHECK(val == std::to_string(i));
                 }
             });
-
-            push_thread.join();
-            pop_thread.join();
-        }
-
-        SUBCASE("using const lvalue objects") {
-            mpscplusplus::Queue<std::string> queue;
 
             std::thread push_thread([&queue]() {
                 for (int i = 0; i < 10; i++) {
@@ -393,6 +437,13 @@ TEST_SUITE("queue") {
                 }
             });
 
+            pop_thread.join();
+            push_thread.join();
+        }
+
+        SUBCASE("using rvalue objects") {
+            mpscplusplus::Queue<std::string> queue;
+
             std::thread pop_thread([&queue]() {
                 for (int i = 0; i < 10; i++) {
                     std::string val;
@@ -400,13 +451,6 @@ TEST_SUITE("queue") {
                     CHECK(val == std::to_string(i));
                 }
             });
-
-            push_thread.join();
-            pop_thread.join();
-        }
-
-        SUBCASE("using rvalue objects") {
-            mpscplusplus::Queue<std::string> queue;
 
             std::thread push_thread([&queue]() {
                 for (int i = 0; i < 10; i++) {
@@ -414,16 +458,29 @@ TEST_SUITE("queue") {
                 }
             });
 
+            pop_thread.join();
+            push_thread.join();
+        }
+
+        SUBCASE("using many values") {
+            mpscplusplus::Queue<int> queue;
+
             std::thread pop_thread([&queue]() {
-                for (int i = 0; i < 10; i++) {
-                    std::string val;
-                    queue.wait_and_pop(val);
-                    CHECK(val == std::to_string(i));
-                }
+              for (int i = 0; i < 100000; i++) {
+                  int val;
+                  queue.wait_and_pop(val);
+                  CHECK(val == i);
+              }
             });
 
-            push_thread.join();
+            std::thread push_thread([&queue]() {
+              for (int i = 0; i < 100000; i++) {
+                  queue.push(i);
+              }
+            });
+
             pop_thread.join();
+            push_thread.join();
         }
     }
 }
