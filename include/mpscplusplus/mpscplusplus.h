@@ -43,23 +43,33 @@ namespace mpscplusplus {
         /**
          * Pushes the given object to the back of the queue.
          * @param[in] data The const lvalue reference to be pushed to the queue.
+         * @return true if an object was successfully pushed to the queue, otherwise false.
          */
-        void push(const T& data) {
+        bool push(const T& data) {
             std::unique_lock<std::mutex> lock(m_mutex);
+            if (!lock) {
+                return false;
+            }
             m_backing_queue.push(data);
             lock.unlock();
             m_condition_variable.notify_one();
+            return true;
         };
 
         /**
          * Pushes the given object to the back of the queue.
          * @param[in] data The rvalue reference to be pushed to the queue.
+         * @return true if an object was successfully pushed to the queue, otherwise false
          */
-        void push(T&& data) {
+        bool push(T&& data) {
             std::unique_lock<std::mutex> lock(m_mutex);
+            if (!lock) {
+                return false;
+            }
             m_backing_queue.push(data);
             lock.unlock();
             m_condition_variable.notify_one();
+            return true;
         };
 
         /**
@@ -70,43 +80,58 @@ namespace mpscplusplus {
          */
         bool pop(T& data) {
             std::unique_lock<std::mutex> lock(m_mutex);
+            if (!lock) {
+                return false;
+            }
             if (m_backing_queue.empty()) {
                 return false;
-            } else {
-                data = m_backing_queue.front();
-                m_backing_queue.pop();
-                return true;
             }
+            data = m_backing_queue.front();
+            m_backing_queue.pop();
+            return true;
         };
 
         /**
          * Pops an object from the front of the queue. This function will wait indefinitely for an object to be pushed
          * to the queue if the queue is empty.
          * @param[out] data A reference to where the popped object will be stored.
+         * @return true if an object was popped from the front of the queue, otherwise false.
          */
-        void wait_and_pop(T& data) {
+        bool wait_and_pop(T& data) {
             std::unique_lock<std::mutex> lock(m_mutex);
+            if (!lock) {
+                return false;
+            }
             if (m_backing_queue.empty()) {
                 m_condition_variable.wait(lock);
             }
             data = m_backing_queue.front();
             m_backing_queue.pop();
+            return true;
         };
 
         /**
          * Pops an object from the front of the queue. This function will wait for as long as the specified timeout for
          * an object to be pushed to the queue if the queue is empty.
          * @param[out] data A reference to where the popped object will be stored.
-         * @param[in] timeout A reference to a duration of how long this function should wait before returning.
+         * @param[in] timeout A reference to a @c std::chrono::duration of how long this function should wait before returning.
+         * @return true if an object was popped from the front of the queue, otherwise false.
          */
         template <typename Rep, typename Period>
-        void wait_and_pop(T& data, const std::chrono::duration<Rep, Period>& timeout) {
+        bool wait_and_pop(T& data, const std::chrono::duration<Rep, Period>& timeout) {
             std::unique_lock<std::mutex> lock(m_mutex);
+            if (!lock) {
+                return false;
+            }
             if (m_backing_queue.empty()) {
-                m_condition_variable.wait_for(lock, timeout);
+                std::cv_status result = m_condition_variable.wait_for(lock, timeout);
+                if (result == std::cv_status::timeout) {
+                    return false;
+                }
             }
             data = m_backing_queue.front();
             m_backing_queue.pop();
+            return true;
         }
     };
 }
