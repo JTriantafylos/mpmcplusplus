@@ -102,7 +102,7 @@ namespace mpscplusplus {
             if (!lock) {
                 return false;
             }
-            if (m_backing_queue.empty()) {
+            while (m_backing_queue.empty()) {
                 m_condition_variable.wait(lock);
             }
             data = m_backing_queue.front();
@@ -114,7 +114,8 @@ namespace mpscplusplus {
          * Pops an object from the front of the queue. This function will wait for as long as the specified timeout for
          * an object to be pushed to the queue if the queue is empty.
          * @param[out] data A reference to where the popped object will be stored.
-         * @param[in] timeout A reference to a @c std::chrono::duration of how long this function should wait before returning.
+         * @param[in] timeout A reference to a @c std::chrono::duration of how long this function should wait before
+         * returning.
          * @return true if an object was popped from the front of the queue, otherwise false.
          */
         template <typename Rep, typename Period>
@@ -123,7 +124,7 @@ namespace mpscplusplus {
             if (!lock) {
                 return false;
             }
-            if (m_backing_queue.empty()) {
+            while (m_backing_queue.empty()) {
                 std::cv_status result = m_condition_variable.wait_for(lock, timeout);
                 if (result == std::cv_status::timeout) {
                     return false;
