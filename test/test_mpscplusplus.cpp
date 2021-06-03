@@ -19,468 +19,315 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "doctest/doctest.h"
 
+#include <atomic>
 #include <thread>
 
 #include "mpscplusplus/mpscplusplus.h"
 
 TEST_SUITE("queue") {
-    TEST_CASE("popping") {
-        SUBCASE("from empty queue") {
-            mpscplusplus::Queue<int> queue;
+    TEST_CASE("creating a queue") { mpscplusplus::Queue<int> q; }
 
-            int val;
-            CHECK(queue.pop(val) == false);
-        }
+    TEST_CASE("popping from empty queue") {
+        mpscplusplus::Queue<int> q;
 
-        SUBCASE("from non-empty queue") {
-            mpscplusplus::Queue<int> queue;
-            int test_val = 1;
-
-            queue.push(test_val);
-
-            int val;
-            CHECK(queue.pop(val) == true);
-            CHECK(val == test_val);
-        }
+        int result;
+        CHECK_FALSE(q.pop(result));
     }
 
-    TEST_CASE("waiting and popping" *
-              doctest::description("all subcases should take approximately 50ms or less to execute")) {
-        SUBCASE("from empty queue") {
-            mpscplusplus::Queue<int> queue;
+    TEST_CASE("pushing one lvalue") {
+        mpscplusplus::Queue<int> q;
+        int val = 10;
 
-            int val;
-            // TODO: Come up with a better way to test timeout functionality
-            queue.wait_and_pop(val, std::chrono::milliseconds(50));
-        }
-
-        SUBCASE("from non-empty queue") {
-            mpscplusplus::Queue<int> queue;
-            int test_val = 1;
-
-            queue.push(test_val);
-
-            int val;
-            queue.wait_and_pop(val, std::chrono::milliseconds(25));
-            CHECK(val == test_val);
-            queue.wait_and_pop(val, std::chrono::milliseconds(25));
-        }
+        CHECK(q.push(val));
     }
 
-    TEST_CASE("sequential pushing and popping") {
-        SUBCASE("using lvalue primitives") {
-            mpscplusplus::Queue<int> queue;
+    TEST_CASE("pushing and popping one lvalue") {
+        mpscplusplus::Queue<int> q;
+        int val = 10;
 
-            for (int i = 0; i < 10; i++) {
-                int val = i;
-                queue.push(val);
-            }
+        REQUIRE(q.push(val));
 
-            for (int i = 0; i < 10; i++) {
-                int val;
-                queue.pop(val);
-                CHECK(val == i);
-            }
-        }
-
-        SUBCASE("using const lvalue primitives") {
-            mpscplusplus::Queue<int> queue;
-
-            for (int i = 0; i < 10; i++) {
-                const int val = i;
-                queue.push(val);
-            }
-
-            for (int i = 0; i < 10; i++) {
-                int val;
-                queue.pop(val);
-                CHECK(val == i);
-            }
-        }
-
-        SUBCASE("using rvalue primitives") {
-            mpscplusplus::Queue<int> queue;
-
-            for (int i = 0; i < 10; i++) {
-                queue.push(int(i));
-            }
-
-            for (int i = 0; i < 10; i++) {
-                int val;
-                queue.pop(val);
-                CHECK(val == i);
-            }
-        }
-
-        SUBCASE("using lvalue objects") {
-            mpscplusplus::Queue<std::string> queue;
-
-            for (int i = 0; i < 10; i++) {
-                std::string string = std::to_string(i);
-                queue.push(string);
-            }
-
-            for (int i = 0; i < 10; i++) {
-                std::string val;
-                queue.pop(val);
-                CHECK(val == std::to_string(i));
-            }
-        }
-
-        SUBCASE("using const lvalue objects") {
-            mpscplusplus::Queue<std::string> queue;
-
-            for (int i = 0; i < 10; i++) {
-                const std::string string = std::to_string(i);
-                queue.push(string);
-            }
-
-            for (int i = 0; i < 10; i++) {
-                std::string val;
-                queue.pop(val);
-                CHECK(val == std::to_string(i));
-            }
-        }
-
-        SUBCASE("using rvalue objects") {
-            mpscplusplus::Queue<std::string> queue;
-
-            for (int i = 0; i < 10; i++) {
-                queue.push(std::to_string(i));
-            }
-
-            for (int i = 0; i < 10; i++) {
-                std::string val;
-                queue.pop(val);
-                CHECK(val == std::to_string(i));
-            }
-        }
-
-        SUBCASE("using many values") {
-            mpscplusplus::Queue<int> queue;
-
-            for (int i = 0; i < 100000; i++) {
-                queue.push(i);
-            }
-
-            for (int i = 0; i < 100000; i++) {
-                int val;
-                queue.pop(val);
-                CHECK(val == i);
-            }
-        }
+        int result;
+        REQUIRE(q.pop(result));
+        CHECK(result == val);
+        CHECK_FALSE(q.pop(result));
     }
 
-    TEST_CASE("multi-threaded pushing and popping") {
-        SUBCASE("using lvalue primitives") {
-            mpscplusplus::Queue<int> queue;
+    TEST_CASE("pushing one const lvalue") {
+        mpscplusplus::Queue<int> q;
+        const int val = 10;
 
-            std::thread push_thread([&queue]() {
-                for (int i = 0; i < 10; i++) {
-                    int val = i;
-                    queue.push(val);
-                }
-            });
-
-            push_thread.join();
-
-            std::thread pop_thread([&queue]() {
-                for (int i = 0; i < 10; i++) {
-                    int val;
-                    queue.pop(val);
-                    CHECK(val == i);
-                }
-            });
-
-            pop_thread.join();
-        }
-
-        SUBCASE("using const lvalue primitives") {
-            mpscplusplus::Queue<int> queue;
-
-            std::thread push_thread([&queue]() {
-                for (int i = 0; i < 10; i++) {
-                    const int val = i;
-                    queue.push(val);
-                }
-            });
-
-            push_thread.join();
-
-            std::thread pop_thread([&queue]() {
-                for (int i = 0; i < 10; i++) {
-                    int val;
-                    queue.pop(val);
-                    CHECK(val == i);
-                }
-            });
-
-            pop_thread.join();
-        }
-
-        SUBCASE("using rvalue primitives") {
-            mpscplusplus::Queue<int> queue;
-
-            std::thread push_thread([&queue]() {
-                for (int i = 0; i < 10; i++) {
-                    queue.push(int(i));
-                }
-            });
-
-            push_thread.join();
-
-            std::thread pop_thread([&queue]() {
-                for (int i = 0; i < 10; i++) {
-                    int val;
-                    queue.pop(val);
-                    CHECK(val == i);
-                }
-            });
-
-            pop_thread.join();
-        }
-
-        SUBCASE("using lvalue objects") {
-            mpscplusplus::Queue<std::string> queue;
-
-            std::thread push_thread([&queue]() {
-                for (int i = 0; i < 10; i++) {
-                    std::string string = std::to_string(i);
-                    queue.push(string);
-                }
-            });
-
-            push_thread.join();
-
-            std::thread pop_thread([&queue]() {
-                for (int i = 0; i < 10; i++) {
-                    std::string val;
-                    queue.pop(val);
-                    CHECK(val == std::to_string(i));
-                }
-            });
-
-            pop_thread.join();
-        }
-
-        SUBCASE("using const lvalue objects") {
-            mpscplusplus::Queue<std::string> queue;
-
-            std::thread push_thread([&queue]() {
-                for (int i = 0; i < 10; i++) {
-                    const std::string string = std::to_string(i);
-                    queue.push(string);
-                }
-            });
-
-            push_thread.join();
-
-            std::thread pop_thread([&queue]() {
-                for (int i = 0; i < 10; i++) {
-                    std::string val;
-                    queue.pop(val);
-                    CHECK(val == std::to_string(i));
-                }
-            });
-
-            pop_thread.join();
-        }
-
-        SUBCASE("using rvalue objects") {
-            mpscplusplus::Queue<std::string> queue;
-
-            std::thread push_thread([&queue]() {
-                for (int i = 0; i < 10; i++) {
-                    queue.push(std::to_string(i));
-                }
-            });
-
-            push_thread.join();
-
-            std::thread pop_thread([&queue]() {
-                for (int i = 0; i < 10; i++) {
-                    std::string val;
-                    queue.pop(val);
-                    CHECK(val == std::to_string(i));
-                }
-            });
-
-            pop_thread.join();
-        }
-
-        SUBCASE("using many values") {
-            mpscplusplus::Queue<int> queue;
-
-            std::thread push_thread([&queue]() {
-              for (int i = 0; i < 100000; i++) {
-                  queue.push(i);
-              }
-            });
-
-            push_thread.join();
-
-            std::thread pop_thread([&queue]() {
-              for (int i = 0; i < 100000; i++) {
-                  int val;
-                  queue.pop(val);
-                  CHECK(val == i);
-              }
-            });
-
-            pop_thread.join();
-        }
+        CHECK(q.push(val));
     }
 
-    TEST_CASE("concurrent pushing and popping with waiting") {
-        SUBCASE("using lvalue primitives") {
-            mpscplusplus::Queue<int> queue;
+    TEST_CASE("pushing and popping one const lvalue") {
+        mpscplusplus::Queue<int> q;
+        const int val = 10;
 
-            std::thread pop_thread([&queue]() {
-                for (int i = 0; i < 10; i++) {
-                    int val;
-                    queue.wait_and_pop(val);
-                    CHECK(val == i);
-                }
-            });
+        REQUIRE(q.push(val));
 
-            std::thread push_thread([&queue]() {
-                for (int i = 0; i < 10; i++) {
-                    int val = i;
-                    queue.push(val);
-                }
-            });
+        int result;
+        REQUIRE(q.pop(result));
+        CHECK(result == val);
+        CHECK_FALSE(q.pop(result));
+    }
 
-            pop_thread.join();
-            push_thread.join();
+    TEST_CASE("pushing one rvalue") {
+        mpscplusplus::Queue<int> q;
+
+        CHECK(q.push(10));
+    }
+
+    TEST_CASE("pushing and popping one rvalue") {
+        mpscplusplus::Queue<int> q;
+
+        REQUIRE(q.push(10));
+
+        int result;
+        REQUIRE(q.pop(result));
+        CHECK(result == 10);
+        CHECK_FALSE(q.pop(result));
+    }
+
+    TEST_CASE("pushing and then popping multiple values") {
+        mpscplusplus::Queue<int> q;
+
+        for (int i = 0; i < 10000; ++i) {
+            REQUIRE(q.push(i));
         }
 
-        SUBCASE("using const lvalue primitives") {
-            mpscplusplus::Queue<int> queue;
-
-            std::thread pop_thread([&queue]() {
-                for (int i = 0; i < 10; i++) {
-                    int val;
-                    queue.wait_and_pop(val);
-                    CHECK(val == i);
-                }
-            });
-
-            std::thread push_thread([&queue]() {
-                for (int i = 0; i < 10; i++) {
-                    const int val = i;
-                    queue.push(val);
-                }
-            });
-
-            pop_thread.join();
-            push_thread.join();
+        int result;
+        for (int i = 0; i < 10000; ++i) {
+            REQUIRE(q.pop(result));
+            REQUIRE(result == i);
         }
+        CHECK_FALSE(q.pop(result));
+    }
 
-        SUBCASE("using rvalue primitives") {
-            mpscplusplus::Queue<int> queue;
+    TEST_CASE("interleaved pushing and popping") {
+        mpscplusplus::Queue<int> q;
 
-            std::thread pop_thread([&queue]() {
-                for (int i = 0; i < 10; i++) {
-                    int val;
-                    queue.wait_and_pop(val);
-                    CHECK(val == i);
-                }
-            });
+        int result;
+        for (int i = 0; i < 10000; ++i) {
+            REQUIRE(q.push(i));
+            REQUIRE(q.push(i + 1));
+            REQUIRE(q.push(i + 2));
 
-            std::thread push_thread([&queue]() {
-                for (int i = 0; i < 10; i++) {
-                    queue.push(int(i));
-                }
-            });
-
-            pop_thread.join();
-            push_thread.join();
+            REQUIRE(q.pop(result));
+            REQUIRE(result == i);
+            REQUIRE(q.pop(result));
+            REQUIRE(result == i + 1);
+            REQUIRE(q.pop(result));
+            REQUIRE(result == i + 2);
         }
+        CHECK_FALSE(q.pop(result));
+    }
 
-        SUBCASE("using lvalue objects") {
-            mpscplusplus::Queue<std::string> queue;
+    TEST_CASE("threaded pushing and popping") {
+        mpscplusplus::Queue<int> q;
 
-            std::thread pop_thread([&queue]() {
-                for (int i = 0; i < 10; i++) {
-                    std::string val;
-                    queue.wait_and_pop(val);
-                    CHECK(val == std::to_string(i));
+        std::thread push_thread([&q]() {
+            for (int i = 0; i < 10000; ++i) {
+                REQUIRE(q.push(i));
+            }
+        });
+        push_thread.join();
+
+        std::thread pop_thread([&q]() {
+            int result;
+            for (int i = 0; i < 10000; ++i) {
+                REQUIRE(q.pop(result));
+                REQUIRE(result == i);
+            }
+        });
+        pop_thread.join();
+
+        int result;
+        CHECK_FALSE(q.pop(result));
+    }
+
+    TEST_CASE("single producer single consumer concurrently pushing and popping") {
+        mpscplusplus::Queue<int> q;
+
+        std::thread pop_thread([&q]() {
+            int popped_count = 0;
+            int result;
+            while (popped_count < 10000) {
+                if (q.pop(result)) {
+                    REQUIRE(result == popped_count);
+                    popped_count++;
                 }
-            });
+            }
+        });
 
-            std::thread push_thread([&queue]() {
-                for (int i = 0; i < 10; i++) {
-                    std::string string = std::to_string(i);
-                    queue.push(string);
-                }
-            });
+        std::thread push_thread([&q]() {
+            for (int i = 0; i < 10000; ++i) {
+                REQUIRE(q.push(i));
+            }
+        });
 
-            pop_thread.join();
-            push_thread.join();
-        }
+        pop_thread.join();
+        push_thread.join();
 
-        SUBCASE("using const lvalue objects") {
-            mpscplusplus::Queue<std::string> queue;
+        int result;
+        CHECK_FALSE(q.pop(result));
+    }
 
-            std::thread pop_thread([&queue]() {
-                for (int i = 0; i < 10; i++) {
-                    std::string val;
-                    queue.wait_and_pop(val);
-                    CHECK(val == std::to_string(i));
-                }
-            });
+    TEST_CASE("single producer single consumer concurrently pushing and popping with waiting") {
+        mpscplusplus::Queue<int> q;
 
-            std::thread push_thread([&queue]() {
-                for (int i = 0; i < 10; i++) {
-                    const std::string string = std::to_string(i);
-                    queue.push(string);
-                }
-            });
+        std::thread pop_thread([&q]() {
+            int result;
+            for (int i = 0; i < 10000; ++i) {
+                REQUIRE(q.wait_and_pop(result));
+                REQUIRE(result == i);
+            }
+        });
 
-            pop_thread.join();
-            push_thread.join();
-        }
+        std::thread push_thread([&q]() {
+            for (int i = 0; i < 10000; ++i) {
+                REQUIRE(q.push(i));
+            }
+        });
 
-        SUBCASE("using rvalue objects") {
-            mpscplusplus::Queue<std::string> queue;
+        pop_thread.join();
+        push_thread.join();
 
-            std::thread pop_thread([&queue]() {
-                for (int i = 0; i < 10; i++) {
-                    std::string val;
-                    queue.wait_and_pop(val);
-                    CHECK(val == std::to_string(i));
-                }
-            });
+        int result;
+        CHECK_FALSE(q.pop(result));
+    }
 
-            std::thread push_thread([&queue]() {
-                for (int i = 0; i < 10; i++) {
-                    queue.push(std::to_string(i));
-                }
-            });
+    TEST_CASE("multi consumer single producer concurrently pushing and popping with waiting") {
+        mpscplusplus::Queue<int> q;
+        std::atomic<int> popped_count(0);
 
-            pop_thread.join();
-            push_thread.join();
-        }
+        std::thread pop_thread_1([&q, &popped_count]() {
+            int result;
+            while (popped_count.fetch_add(1) < 10000) {
+                REQUIRE(q.wait_and_pop(result));
+                REQUIRE(result == 1);
+            }
+        });
 
-        SUBCASE("using many values") {
-            mpscplusplus::Queue<int> queue;
+        std::thread pop_thread_2([&q, &popped_count]() {
+            int result;
+            while (popped_count.fetch_add(1) < 10000) {
+                REQUIRE(q.wait_and_pop(result));
+                REQUIRE(result == 1);
+            }
+        });
 
-            std::thread pop_thread([&queue]() {
-              for (int i = 0; i < 100000; i++) {
-                  int val;
-                  queue.wait_and_pop(val);
-                  CHECK(val == i);
-              }
-            });
+        std::thread pop_thread_3([&q, &popped_count]() {
+            int result;
+            while (popped_count.fetch_add(1) < 10000) {
+                REQUIRE(q.wait_and_pop(result));
+                REQUIRE(result == 1);
+            }
+        });
 
-            std::thread push_thread([&queue]() {
-              for (int i = 0; i < 100000; i++) {
-                  queue.push(i);
-              }
-            });
+        std::thread push_thread([&q]() {
+            for (int i = 0; i < 10000; ++i) {
+                REQUIRE(q.push(1));
+            }
+        });
 
-            pop_thread.join();
-            push_thread.join();
-        }
+        pop_thread_1.join();
+        pop_thread_2.join();
+        pop_thread_3.join();
+        push_thread.join();
+
+        int result;
+        CHECK_FALSE(q.pop(result));
+    }
+
+    TEST_CASE("multi consumer multi producer concurrently pushing and popping with waiting") {
+        mpscplusplus::Queue<int> q;
+        std::atomic<int> popped_count(0);
+
+        std::thread pop_thread_1([&q, &popped_count]() {
+            int result;
+            while (popped_count.fetch_add(1) < 30000) {
+                REQUIRE(q.wait_and_pop(result));
+                REQUIRE((result == 1 || result == 2 || result == 3));
+            }
+        });
+
+        std::thread pop_thread_2([&q, &popped_count]() {
+            int result;
+            while (popped_count.fetch_add(1) < 30000) {
+                REQUIRE(q.wait_and_pop(result));
+                REQUIRE((result == 1 || result == 2 || result == 3));
+            }
+        });
+
+        std::thread pop_thread_3([&q, &popped_count]() {
+            int result;
+            while (popped_count.fetch_add(1) < 30000) {
+                REQUIRE(q.wait_and_pop(result));
+                REQUIRE((result == 1 || result == 2 || result == 3));
+            }
+        });
+
+        std::thread push_thread_1([&q]() {
+            for (int i = 0; i < 10000; ++i) {
+                REQUIRE(q.push(1));
+            }
+        });
+
+        std::thread push_thread_2([&q]() {
+            for (int i = 0; i < 10000; ++i) {
+                REQUIRE(q.push(2));
+            }
+        });
+
+        std::thread push_thread_3([&q]() {
+            for (int i = 0; i < 10000; ++i) {
+                REQUIRE(q.push(3));
+            }
+        });
+
+        pop_thread_1.join();
+        pop_thread_2.join();
+        pop_thread_3.join();
+        push_thread_1.join();
+        push_thread_2.join();
+        push_thread_3.join();
+
+        int result;
+        CHECK_FALSE(q.pop(result));
+    }
+
+    TEST_CASE("popping from empty queue with waiting and timeout") {
+        mpscplusplus::Queue<int> q;
+        std::chrono::milliseconds duration(10);
+
+        int result;
+        REQUIRE_FALSE(q.wait_and_pop(result, duration));
+        CHECK_FALSE(q.pop(result));
+    }
+
+    TEST_CASE("threaded pushing and popping with waiting and timeout") {
+        mpscplusplus::Queue<int> q;
+        std::chrono::milliseconds duration(10);
+
+        std::thread push_thread([&q]() {
+          for (int i = 0; i < 10000; ++i) {
+              REQUIRE(q.push(i));
+          }
+        });
+        push_thread.join();
+
+        std::thread pop_thread([&q, &duration]() {
+          int result;
+          for (int i = 0; i < 10000; ++i) {
+              REQUIRE(q.wait_and_pop(result, duration));
+              REQUIRE(result == i);
+          }
+          REQUIRE_FALSE(q.wait_and_pop(result, duration));
+        });
+        pop_thread.join();
+
+        int result;
+        CHECK_FALSE(q.pop(result));
     }
 }
