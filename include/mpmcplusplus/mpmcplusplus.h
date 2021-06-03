@@ -66,7 +66,7 @@ namespace mpmcplusplus {
             if (!lock) {
                 return false;
             }
-            m_backing_queue.push(data);
+            m_backing_queue.push(std::move(data));
             lock.unlock();
             m_condition_variable.notify_one();
             return true;
@@ -86,7 +86,7 @@ namespace mpmcplusplus {
             if (m_backing_queue.empty()) {
                 return false;
             }
-            data = m_backing_queue.front();
+            data = std::move(m_backing_queue.front());
             m_backing_queue.pop();
             return true;
         };
@@ -105,7 +105,7 @@ namespace mpmcplusplus {
             while (m_backing_queue.empty()) {
                 m_condition_variable.wait(lock);
             }
-            data = m_backing_queue.front();
+            data = std::move(m_backing_queue.front());
             m_backing_queue.pop();
             return true;
         };
@@ -130,7 +130,7 @@ namespace mpmcplusplus {
                     return false;
                 }
             }
-            data = m_backing_queue.front();
+            data = std::move(m_backing_queue.front());
             m_backing_queue.pop();
             return true;
         }
