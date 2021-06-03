@@ -311,19 +311,19 @@ TEST_SUITE("queue") {
         std::chrono::milliseconds duration(10);
 
         std::thread push_thread([&q]() {
-          for (int i = 0; i < 10000; ++i) {
-              REQUIRE(q.push(i));
-          }
+            for (int i = 0; i < 10000; ++i) {
+                REQUIRE(q.push(i));
+            }
         });
         push_thread.join();
 
         std::thread pop_thread([&q, &duration]() {
-          int result;
-          for (int i = 0; i < 10000; ++i) {
-              REQUIRE(q.wait_and_pop(result, duration));
-              REQUIRE(result == i);
-          }
-          REQUIRE_FALSE(q.wait_and_pop(result, duration));
+            int result;
+            for (int i = 0; i < 10000; ++i) {
+                REQUIRE(q.wait_and_pop(result, duration));
+                REQUIRE(result == i);
+            }
+            REQUIRE_FALSE(q.wait_and_pop(result, duration));
         });
         pop_thread.join();
 
