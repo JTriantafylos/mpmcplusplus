@@ -1,5 +1,5 @@
 /*
- * mpscplusplus.h - Multi Producer Single Consumer queue implementation
+ * mpmcplusplus.h - Multi Producer Multi Consumer queue implementation
  * Copyright (C) 2021 James Triantafylos
  *
  * This program is free software: you can redistribute it and/or modify
@@ -24,9 +24,9 @@
 #include <queue>
 
 /**
- * The namespace encapsulating all mpscplusplus functionality.
+ * The namespace encapsulating all mpmcplusplus functionality.
  */
-namespace mpscplusplus {
+namespace mpmcplusplus {
     /**
      * A wrapper structure around std::queue to allow for thread-safe operations.
      * Uses a @c std::mutex and a @c std::condition_variable to accomplish this.

@@ -1,5 +1,5 @@
 /*
- * test_mpscplusplus.cpp - Test code for mpscplusplus
+ * test_mpmcplusplus.cpp - Test code for mpmcplusplus
  * Copyright (C) 2021 James Triantafylos
  *
  * This program is free software: you can redistribute it and/or modify
@@ -22,27 +22,27 @@
 #include <atomic>
 #include <thread>
 
-#include "mpscplusplus/mpscplusplus.h"
+#include "mpmcplusplus/mpmcplusplus.h"
 
 TEST_SUITE("queue") {
-    TEST_CASE("creating a queue") { mpscplusplus::Queue<int> q; }
+    TEST_CASE("creating a queue") { mpmcplusplus::Queue<int> q; }
 
     TEST_CASE("popping from empty queue") {
-        mpscplusplus::Queue<int> q;
+        mpmcplusplus::Queue<int> q;
 
         int result;
         CHECK_FALSE(q.pop(result));
     }
 
     TEST_CASE("pushing one lvalue") {
-        mpscplusplus::Queue<int> q;
+        mpmcplusplus::Queue<int> q;
         int val = 10;
 
         CHECK(q.push(val));
     }
 
     TEST_CASE("pushing and popping one lvalue") {
-        mpscplusplus::Queue<int> q;
+        mpmcplusplus::Queue<int> q;
         int val = 10;
 
         REQUIRE(q.push(val));
@@ -54,14 +54,14 @@ TEST_SUITE("queue") {
     }
 
     TEST_CASE("pushing one const lvalue") {
-        mpscplusplus::Queue<int> q;
+        mpmcplusplus::Queue<int> q;
         const int val = 10;
 
         CHECK(q.push(val));
     }
 
     TEST_CASE("pushing and popping one const lvalue") {
-        mpscplusplus::Queue<int> q;
+        mpmcplusplus::Queue<int> q;
         const int val = 10;
 
         REQUIRE(q.push(val));
@@ -73,13 +73,13 @@ TEST_SUITE("queue") {
     }
 
     TEST_CASE("pushing one rvalue") {
-        mpscplusplus::Queue<int> q;
+        mpmcplusplus::Queue<int> q;
 
         CHECK(q.push(10));
     }
 
     TEST_CASE("pushing and popping one rvalue") {
-        mpscplusplus::Queue<int> q;
+        mpmcplusplus::Queue<int> q;
 
         REQUIRE(q.push(10));
 
@@ -90,7 +90,7 @@ TEST_SUITE("queue") {
     }
 
     TEST_CASE("pushing and then popping multiple values") {
-        mpscplusplus::Queue<int> q;
+        mpmcplusplus::Queue<int> q;
 
         for (int i = 0; i < 10000; ++i) {
             REQUIRE(q.push(i));
@@ -105,7 +105,7 @@ TEST_SUITE("queue") {
     }
 
     TEST_CASE("interleaved pushing and popping") {
-        mpscplusplus::Queue<int> q;
+        mpmcplusplus::Queue<int> q;
 
         int result;
         for (int i = 0; i < 10000; ++i) {
@@ -124,7 +124,7 @@ TEST_SUITE("queue") {
     }
 
     TEST_CASE("threaded pushing and popping") {
-        mpscplusplus::Queue<int> q;
+        mpmcplusplus::Queue<int> q;
 
         std::thread push_thread([&q]() {
             for (int i = 0; i < 10000; ++i) {
@@ -147,7 +147,7 @@ TEST_SUITE("queue") {
     }
 
     TEST_CASE("single producer single consumer concurrently pushing and popping") {
-        mpscplusplus::Queue<int> q;
+        mpmcplusplus::Queue<int> q;
 
         std::thread pop_thread([&q]() {
             int popped_count = 0;
@@ -174,7 +174,7 @@ TEST_SUITE("queue") {
     }
 
     TEST_CASE("single producer single consumer concurrently pushing and popping with waiting") {
-        mpscplusplus::Queue<int> q;
+        mpmcplusplus::Queue<int> q;
 
         std::thread pop_thread([&q]() {
             int result;
@@ -198,7 +198,7 @@ TEST_SUITE("queue") {
     }
 
     TEST_CASE("multi consumer single producer concurrently pushing and popping with waiting") {
-        mpscplusplus::Queue<int> q;
+        mpmcplusplus::Queue<int> q;
         std::atomic<int> popped_count(0);
 
         std::thread pop_thread_1([&q, &popped_count]() {
@@ -241,7 +241,7 @@ TEST_SUITE("queue") {
     }
 
     TEST_CASE("multi consumer multi producer concurrently pushing and popping with waiting") {
-        mpscplusplus::Queue<int> q;
+        mpmcplusplus::Queue<int> q;
         std::atomic<int> popped_count(0);
 
         std::thread pop_thread_1([&q, &popped_count]() {
@@ -298,7 +298,7 @@ TEST_SUITE("queue") {
     }
 
     TEST_CASE("popping from empty queue with waiting and timeout") {
-        mpscplusplus::Queue<int> q;
+        mpmcplusplus::Queue<int> q;
         std::chrono::milliseconds duration(10);
 
         int result;
@@ -307,7 +307,7 @@ TEST_SUITE("queue") {
     }
 
     TEST_CASE("threaded pushing and popping with waiting and timeout") {
-        mpscplusplus::Queue<int> q;
+        mpmcplusplus::Queue<int> q;
         std::chrono::milliseconds duration(10);
 
         std::thread push_thread([&q]() {

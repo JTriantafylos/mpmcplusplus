@@ -1,4 +1,4 @@
-add_executable(test_mpscplusplus test_mpscplusplus.cpp)
-target_link_libraries(test_mpscplusplus mpscplusplus)
-target_link_libraries(test_mpscplusplus pthread)
-target_include_directories(test_mpscplusplus PUBLIC doctest)
+add_executable(test_mpmcplusplus test_mpmcplusplus.cpp)
+target_link_libraries(test_mpmcplusplus mpmcplusplus)
+target_link_libraries(test_mpmcplusplus pthread)
+target_include_directories(test_mpmcplusplus PUBLIC doctest)
