@@ -330,4 +330,229 @@ TEST_SUITE("queue") {
         int result;
         CHECK_FALSE(q.pop(result));
     }
+
+    TEST_CASE("emplacing one value") {
+        mpmcplusplus::Queue<std::unique_ptr<int>> q;
+
+        CHECK(q.emplace(new int(10)));
+    }
+
+    TEST_CASE("emplacing and popping one value") {
+        mpmcplusplus::Queue<std::unique_ptr<int>> q;
+
+        REQUIRE(q.emplace(new int(10)));
+
+        std::unique_ptr<int> result;
+        REQUIRE(q.pop(result));
+        CHECK(*result == 10);
+        CHECK_FALSE(q.pop(result));
+    }
+
+    TEST_CASE("emplacing and then popping multiple values") {
+        mpmcplusplus::Queue<std::unique_ptr<int>> q;
+
+        for (int i = 0; i < 10000; ++i) {
+            REQUIRE(q.emplace(new int(i)));
+        }
+
+        std::unique_ptr<int> result;
+        for (int i = 0; i < 10000; ++i) {
+            REQUIRE(q.pop(result));
+            REQUIRE(*result == i);
+        }
+        CHECK_FALSE(q.pop(result));
+    }
+
+    TEST_CASE("interleaved emplacing and popping") {
+        mpmcplusplus::Queue<std::unique_ptr<int>> q;
+
+        std::unique_ptr<int> result;
+        for (int i = 0; i < 10000; ++i) {
+            REQUIRE(q.emplace(new int(i)));
+            REQUIRE(q.emplace(new int(i + 1)));
+            REQUIRE(q.emplace(new int(i + 2)));
+
+            REQUIRE(q.pop(result));
+            REQUIRE(*result == i);
+            REQUIRE(q.pop(result));
+            REQUIRE(*result == i + 1);
+            REQUIRE(q.pop(result));
+            REQUIRE(*result == i + 2);
+        }
+        CHECK_FALSE(q.pop(result));
+    }
+
+    TEST_CASE("threaded pushing and popping") {
+        mpmcplusplus::Queue<std::unique_ptr<int>> q;
+
+        std::thread push_thread([&q]() {
+            for (int i = 0; i < 10000; ++i) {
+                REQUIRE(q.emplace(new int(i)));
+            }
+        });
+        push_thread.join();
+
+        std::thread pop_thread([&q]() {
+            std::unique_ptr<int> result;
+            for (int i = 0; i < 10000; ++i) {
+                REQUIRE(q.pop(result));
+                REQUIRE(*result == i);
+            }
+        });
+        pop_thread.join();
+
+        std::unique_ptr<int> result;
+        CHECK_FALSE(q.pop(result));
+    }
+
+    TEST_CASE("single producer single consumer concurrently pushing and popping") {
+        mpmcplusplus::Queue<std::unique_ptr<int>> q;
+
+        std::thread pop_thread([&q]() {
+            int popped_count = 0;
+            std::unique_ptr<int> result;
+            while (popped_count < 10000) {
+                if (q.pop(result)) {
+                    REQUIRE(*result == popped_count);
+                    popped_count++;
+                }
+            }
+        });
+
+        std::thread push_thread([&q]() {
+            for (int i = 0; i < 10000; ++i) {
+                REQUIRE(q.emplace(new int(i)));
+            }
+        });
+
+        pop_thread.join();
+        push_thread.join();
+
+        std::unique_ptr<int> result;
+        CHECK_FALSE(q.pop(result));
+    }
+
+    TEST_CASE("single producer single consumer concurrently pushing and popping with waiting") {
+        mpmcplusplus::Queue<std::unique_ptr<int>> q;
+
+        std::thread pop_thread([&q]() {
+            std::unique_ptr<int> result;
+            for (int i = 0; i < 10000; ++i) {
+                REQUIRE(q.wait_and_pop(result));
+                REQUIRE(*result == i);
+            }
+        });
+
+        std::thread push_thread([&q]() {
+            for (int i = 0; i < 10000; ++i) {
+                REQUIRE(q.emplace(new int(i)));
+            }
+        });
+
+        pop_thread.join();
+        push_thread.join();
+
+        std::unique_ptr<int> result;
+        CHECK_FALSE(q.pop(result));
+    }
+
+    TEST_CASE("multi consumer single producer concurrently pushing and popping with waiting") {
+        mpmcplusplus::Queue<std::unique_ptr<int>> q;
+        std::atomic<int> popped_count(0);
+
+        std::thread pop_thread_1([&q, &popped_count]() {
+            std::unique_ptr<int> result;
+            while (popped_count.fetch_add(1) < 10000) {
+                REQUIRE(q.wait_and_pop(result));
+                REQUIRE(*result == 1);
+            }
+        });
+
+        std::thread pop_thread_2([&q, &popped_count]() {
+            std::unique_ptr<int> result;
+            while (popped_count.fetch_add(1) < 10000) {
+                REQUIRE(q.wait_and_pop(result));
+                REQUIRE(*result == 1);
+            }
+        });
+
+        std::thread pop_thread_3([&q, &popped_count]() {
+            std::unique_ptr<int> result;
+            while (popped_count.fetch_add(1) < 10000) {
+                REQUIRE(q.wait_and_pop(result));
+                REQUIRE(*result == 1);
+            }
+        });
+
+        std::thread push_thread([&q]() {
+            for (int i = 0; i < 10000; ++i) {
+                REQUIRE(q.emplace(new int(1)));
+            }
+        });
+
+        pop_thread_1.join();
+        pop_thread_2.join();
+        pop_thread_3.join();
+        push_thread.join();
+
+        std::unique_ptr<int> result;
+        CHECK_FALSE(q.pop(result));
+    }
+
+    TEST_CASE("multi consumer multi producer concurrently pushing and popping with waiting") {
+        mpmcplusplus::Queue<std::unique_ptr<int>> q;
+        std::atomic<int> popped_count(0);
+
+        std::thread pop_thread_1([&q, &popped_count]() {
+            std::unique_ptr<int> result;
+            while (popped_count.fetch_add(1) < 30000) {
+                REQUIRE(q.wait_and_pop(result));
+                REQUIRE((*result == 1 || *result == 2 || *result == 3));
+            }
+        });
+
+        std::thread pop_thread_2([&q, &popped_count]() {
+            std::unique_ptr<int> result;
+            while (popped_count.fetch_add(1) < 30000) {
+                REQUIRE(q.wait_and_pop(result));
+                REQUIRE((*result == 1 || *result == 2 || *result == 3));
+            }
+        });
+
+        std::thread pop_thread_3([&q, &popped_count]() {
+            std::unique_ptr<int> result;
+            while (popped_count.fetch_add(1) < 30000) {
+                REQUIRE(q.wait_and_pop(result));
+                REQUIRE((*result == 1 || *result == 2 || *result == 3));
+            }
+        });
+
+        std::thread push_thread_1([&q]() {
+            for (int i = 0; i < 10000; ++i) {
+                REQUIRE(q.emplace(new int(1)));
+            }
+        });
+
+        std::thread push_thread_2([&q]() {
+            for (int i = 0; i < 10000; ++i) {
+                REQUIRE(q.emplace(new int(2)));
+            }
+        });
+
+        std::thread push_thread_3([&q]() {
+            for (int i = 0; i < 10000; ++i) {
+                REQUIRE(q.emplace(new int(3)));
+            }
+        });
+
+        pop_thread_1.join();
+        pop_thread_2.join();
+        pop_thread_3.join();
+        push_thread_1.join();
+        push_thread_2.join();
+        push_thread_3.join();
+
+        std::unique_ptr<int> result;
+        CHECK_FALSE(q.pop(result));
+    }
 }

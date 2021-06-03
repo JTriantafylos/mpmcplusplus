@@ -73,6 +73,23 @@ namespace mpmcplusplus {
         };
 
         /**
+         * Pushes a new object to the back of the queue. The object is constructed in-place.
+         * @param[in] args The arguments to forward to the constructor of the object.
+         * @return true if an object was successfully emplaced in the queue, otherwise false
+         */
+        template <typename... Args>
+        bool emplace(Args&&... args) {
+            std::unique_lock<std::mutex> lock(m_mutex);
+            if (!lock) {
+                return false;
+            }
+            m_backing_queue.emplace(std::forward<Args>(args)...);
+            lock.unlock();
+            m_condition_variable.notify_one();
+            return true;
+        }
+
+        /**
          * Pops an object from the front of the queue without blocking. This function will return immediately if the
          * queue is empty.
          * @param[out] data A reference to where the popped object will be stored.
